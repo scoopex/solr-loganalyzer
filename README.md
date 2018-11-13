@@ -6,14 +6,17 @@ A query analyzer that parses Solr's log file to get some basic query statistics
 Note that you need to enable logging at the INFO level for this to
 work and you need to have cores enabled. You also need python3 installed.
 
-Usage:
+Basic usage
+===========
+
+# Usage:
 ```
 # reading from stdin
-cat file1 file2 | ./loganalyzer.py --max 20
-tail -1000 | ./loganalyzer.py --max
+cat file1 file2 | ./solr_loganalyzer.py --max 20
+tail -1000 | ./solr_loganalyzer.py --max
 
 # reading a file
-./loganalyzer.py so solr.log solr.log.1 solr.log.2
+./solr_loganalyzer.py so solr.log solr.log.1 solr.log.2
 ```
 
 The analyzer outputs statistics grouped by Solr core. Here is an example:
@@ -64,4 +67,16 @@ Median     2
 99%       30
 ```
 
-This tool is inspired by [redis-faina](https://github.com/Instagram/redis-faina)
+# Testing
+
+```
+nostests -s
+```
+
+Notes and Copyright
+===================
+
+This tool is inspired by [redis-faina](https://github.com/Instagram/redis-faina).
+The tool was forked from [solr-loganalyzer](https://github.com/dfdesho/solr-loganalyzer).
+
+This tool is distributed with the [BSD-2 Licence](LICENCE).

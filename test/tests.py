@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import unittest
-import os
-from loganalyzer import StatCounter
+import os, sys
 
 RUNDIR = os.path.realpath(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(RUNDIR + "/../")
+
+from solr_loganalyzer import StatCounter
 
 
 class TestCoreCounter(unittest.TestCase):
@@ -13,12 +15,11 @@ class TestCoreCounter(unittest.TestCase):
         self.stats = StatCounter(debug=True)
 
     def test_parse(self):
-        with open("%s/test/resources/solr.log" % RUNDIR) as log_fd:
+        with open("%s/resources/solr.log" % RUNDIR) as log_fd:
             self.stats.process(log_fd)
         cores = self.stats.corecounters
         print("Cores: "+ str(cores))
         self.assertEqual(len(cores), 1)
-
         self.assertEqual(self.stats.queries, self.stats.lines)
 
 
