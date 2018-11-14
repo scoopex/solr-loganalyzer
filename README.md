@@ -69,3 +69,10 @@ This tool is inspired by [redis-faina](https://github.com/Instagram/redis-faina)
 The tool was forked from [solr-loganalyzer](https://github.com/dfdesho/solr-loganalyzer).
 
 This tool is distributed with the [BSD-2 Licence](LICENCE).
+
+Authors
+=======
+
+* Martin Filliau <dfdeshom@gmail.com>
+* Marc Schoechlin <marc.schoechlin@vico-research.com>
+
