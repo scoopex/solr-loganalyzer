@@ -7,13 +7,15 @@ import sys
 import urllib.parse
 
 # INFO  - 2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [core1]
-LINE_RE = re.compile(r"INFO.*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
+LINE_RE = re.compile(
+    r"INFO.*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
 FACET_FIELD_RE = re.compile(r"facet.field=(.+?)(&|$)")
 """
 lines we want:
 INFO  2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [arstechnicacogtree] webapp=/solr path=/mlt params={mlt.count=16&fl=link,title,author,pub_date,thumb_url_medium,metadata,section&start=0&q=link_aliases:http\://arstechnica.com/apple/news/2009/02/the\-case\-of\-the\-app\-store\-ripoff.ars&wt=json&fq=pub_date:[NOW/DAY-14DAYS+TO+NOW/DAY%2B1DAY]&rows=16} status=0 QTime=2
 INFO: [places] webapp=/solr path=/select/ params={pf=*&sort=geodist()+asc&fl=*,_dist_:geodist()&q=*&sfield=location&pt=-1.260326940083812,51.759690475011105&wt=json&spellcheck.collate=true&defType=edismax} hits=9830 status=0 QTime=11
 """
+
 
 class CoreCounter(object):
     def __init__(self, corename):
@@ -47,7 +49,7 @@ class CoreCounter(object):
         top = counter.most_common(n)
         for index, item in enumerate(top):
             label, cnt = item
-            s += 'QUERY %i: %i %s \n\n  "%s"\n\n' % (index + 1, cnt, unit, label )
+            s += 'QUERY %i: %i %s \n\n  "%s"\n\n' % (index + 1, cnt, unit, label)
         return s
 
     def print_top_items(self, n, counter, title, unit):
@@ -78,7 +80,7 @@ class CoreCounter(object):
 
 class StatCounter(object):
 
-    def __init__(self, write_file_fd=None, write_base_url= None, debug=False):
+    def __init__(self, write_file_fd=None, write_base_url=None, debug=False):
         self.corecounters = {}
         self.queries = 0
         self.lines = 0
@@ -94,16 +96,16 @@ class StatCounter(object):
             line = ""
 
         line += core
-        line += path+"?"
+        line += path + "?"
 
         query_args = query.split("&")
         query_args_new = []
         for query_arg in query_args:
-            #print(query_arg)
+            # print(query_arg)
             m = re.match("^(.+)=(.+)$", query_arg)
             if m:
                 if m.group(1) == "fq" or m.group(1) == "q":
-                    query_args_new.append(m.group(1)+"="+urllib.parse.quote_plus(m.group(2).replace("+", " ")))
+                    query_args_new.append(m.group(1) + "=" + urllib.parse.quote_plus(m.group(2).replace("+", " ")))
                 else:
                     query_args_new.append(query_arg)
 
@@ -111,8 +113,6 @@ class StatCounter(object):
         line += "\n"
 
         self.write_file_fd.write(line)
-        #sys.exit(1)
-
 
     def process(self, iterinput):
         for line in iterinput:
@@ -124,11 +124,8 @@ class StatCounter(object):
                     print("not matched: >>>{0}<<<".format(line))
                 continue
 
-
             core = matches.group("core")
             path = matches.group("path")
-
-
 
             search = matches.group("search")
 
