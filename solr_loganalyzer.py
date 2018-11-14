@@ -6,7 +6,7 @@ import argparse
 import sys
 
 # INFO  - 2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [core1]
-LINE_RE = re.compile("INFO .*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
+LINE_RE = re.compile("INFO.*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
 """
 lines we want:
 INFO  2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [arstechnicacogtree] webapp=/solr path=/mlt params={mlt.count=16&fl=link,title,author,pub_date,thumb_url_medium,metadata,section&start=0&q=link_aliases:http\://arstechnica.com/apple/news/2009/02/the\-case\-of\-the\-app\-store\-ripoff.ars&wt=json&fq=pub_date:[NOW/DAY-14DAYS+TO+NOW/DAY%2B1DAY]&rows=16} status=0 QTime=2
@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     args, remaining_args = parser.parse_known_args()
 
-    sc = StatCounter()
+    sc = StatCounter(debug=args.debug)
 
     if len(remaining_args) <= 0:
         sc.process(sys.stdin)
