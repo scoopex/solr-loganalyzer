@@ -4,9 +4,11 @@ from collections import Counter
 import re
 import argparse
 import sys
+import urllib.parse
 
 # INFO  - 2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [core1]
-LINE_RE = re.compile("INFO.*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
+LINE_RE = re.compile(r"INFO.*?\[(?P<core>\w+)\]\s+webapp=/\w+\s+path=(?P<path>/\w+)\s+params={(?P<search>.*)}\s+(hits=(?P<hits>\w+)\s+)?status=\w+\s+QTime=(?P<qtime>\w+).*")
+FACET_FIELD_RE = re.compile(r"facet.field=(.+?)(&|$)")
 """
 lines we want:
 INFO  2018-11-12 08:42:22.162; org.apache.solr.core.SolrCore; [arstechnicacogtree] webapp=/solr path=/mlt params={mlt.count=16&fl=link,title,author,pub_date,thumb_url_medium,metadata,section&start=0&q=link_aliases:http\://arstechnica.com/apple/news/2009/02/the\-case\-of\-the\-app\-store\-ripoff.ars&wt=json&fq=pub_date:[NOW/DAY-14DAYS+TO+NOW/DAY%2B1DAY]&rows=16} status=0 QTime=2
@@ -20,7 +22,8 @@ class CoreCounter(object):
         self.urls = Counter()
         self.linesread = 0
         self.qtimes = Counter()
-        self.qtimes_sum = Counter()
+        self.hits = Counter()
+        self.facet_fields = Counter()
 
     def __repr__(self):
         return "<Core '%s' with %i endpoints %i search urls>" % (self.corename, len(self.endpoints), len(self.urls))
@@ -37,22 +40,34 @@ class CoreCounter(object):
                 ("90%", percent_90),
                 ("99%", percent_99))
 
-    def _pprint_topn(self, n, counter, title, unit):
+    def print_top_queries(self, n, counter, title, unit):
         """Print the top N entries of a counter with its title.
         """
         s = "{0}\n{1}\n".format(title, "=" * 40)
         top = counter.most_common(n)
         for index, item in enumerate(top):
             label, cnt = item
-            s += 'QUERY %i: "%s" %i %s\n\n' % (index + 1, label, cnt, unit)
+            s += 'QUERY %i: %i %s \n\n  "%s"\n\n' % (index + 1, cnt, unit, label )
+        return s
+
+    def print_top_items(self, n, counter, title, unit):
+        """Print the top N entries of a counter with its title.
+        """
+        s = "{0}\n{1}\n".format(title, "=" * 40)
+        top = counter.most_common(n)
+        for index, item in enumerate(top):
+            label, cnt = item
+            s += 'ITEM %-5i: %-15s "%s"\n' % (index + 1, str(cnt) + " times", label)
         return s
 
     def pprint_stats(self):
         """Print statistics for a core
         """
-        print(self._pprint_topn(args.max, self.endpoints, "Top Endpoints for {0}".format(self.corename), "times"))
-        print(self._pprint_topn(args.max, self.urls, "Top Search URLs for {0}".format(self.corename), "times"))
-        print(self._pprint_topn(args.max, self.qtimes, "Slowest Searches for {0}".format(self.corename), "ms"))
+        print(self.print_top_queries(args.max, self.endpoints, "Top Endpoints for {0}".format(self.corename), "times"))
+        print(self.print_top_queries(args.max, self.urls, "Top Search URLs for {0}".format(self.corename), "times"))
+        print(self.print_top_queries(args.max, self.qtimes, "Slowest Searches for {0}".format(self.corename), "ms"))
+        print(self.print_top_items(args.max, self.facet_fields, "Top Factet Fields for {0}".format(self.corename), "times"))
+
         # qtimes
         print("Search Time for {0}\n{1}\n".format(self.corename, '=' * 40))
         stats = self.timestats()
@@ -62,11 +77,42 @@ class CoreCounter(object):
 
 
 class StatCounter(object):
-    def __init__(self, debug=False):
+
+    def __init__(self, write_file_fd=None, write_base_url= None, debug=False):
         self.corecounters = {}
         self.queries = 0
         self.lines = 0
         self.debug = debug
+        self.write_file_fd = write_file_fd
+        self.write_base_url = write_base_url
+
+    def write_file_line(self, core, path, query):
+
+        if self.write_base_url:
+            line = self.write_base_url
+        else:
+            line = ""
+
+        line += core
+        line += path+"?"
+
+        query_args = query.split("&")
+        query_args_new = []
+        for query_arg in query_args:
+            #print(query_arg)
+            m = re.match("^(.+)=(.+)$", query_arg)
+            if m:
+                if m.group(1) == "fq" or m.group(1) == "q":
+                    query_args_new.append(m.group(1)+"="+urllib.parse.quote_plus(m.group(2).replace("+", " ")))
+                else:
+                    query_args_new.append(query_arg)
+
+        line += "&".join(query_args_new)
+        line += "\n"
+
+        self.write_file_fd.write(line)
+        #sys.exit(1)
+
 
     def process(self, iterinput):
         for line in iterinput:
@@ -78,22 +124,31 @@ class StatCounter(object):
                     print("not matched: >>>{0}<<<".format(line))
                 continue
 
+
             core = matches.group("core")
             path = matches.group("path")
+
+
+
             search = matches.group("search")
+
             qtime = matches.group("qtime")
             hits = matches.group("hits")
 
+            if self.write_file_fd is not None:
+                self.write_file_line(core, path, search)
 
             corecounter = self.corecounters.get(core, CoreCounter(core))
             corecounter.endpoints[path] += 1
             corecounter.urls[search] += 1
             corecounter.linesread += 1
             corecounter.qtimes[search] = int(qtime)
-            corecounter.qtimes_sum[search] = corecounter.qtimes_sum[search] + int(qtime)
 
             self.corecounters[core] = corecounter
             self.queries += 1
+
+            for match in FACET_FIELD_RE.findall(search):
+                corecounter.facet_fields[match[0]] += 1
 
     def allcounterstats(self):
         for cc in self.corecounters.values():
@@ -118,9 +173,28 @@ if __name__ == '__main__':
         action='store_true',
     )
 
+    parser.add_argument(
+        '--write_file',
+        type=str,
+        default=None,
+        nargs='?',
+        help='write query file (can be used for the siege loadtest tool)')
+
+    parser.add_argument(
+        '--write_base_url',
+        type=str,
+        default=None,
+        nargs='?',
+        help='base url for query file')
+
     args, remaining_args = parser.parse_known_args()
 
-    sc = StatCounter(debug=args.debug)
+    if args.write_file is not None:
+        write_file_fd = open(args.write_file, "w")
+    else:
+        write_file_fd = None
+
+    sc = StatCounter(write_file_fd=write_file_fd, write_base_url=args.write_base_url, debug=args.debug)
 
     if len(remaining_args) <= 0:
         sc.process(sys.stdin)
@@ -134,3 +208,6 @@ if __name__ == '__main__':
 
     print("parsed %s lines with %s queries" % (sc.lines, sc.queries))
 
+    if write_file_fd is not None:
+        print("wrote urls to file '%s'" % args.write_file)
+        write_file_fd.close()

@@ -13,10 +13,17 @@ Basic usage
 ```
 # reading from stdin
 cat file1 file2 | ./solr_loganalyzer.py --max 20
-tail -1000 | ./solr_loganalyzer.py --max
+tail -1000  file | ./solr_loganalyzer.py --max 20
 
-# reading a file
-./solr_loganalyzer.py so solr.log solr.log.1 solr.log.2
+# create statistics and a siege urls file by continously reading the solr.log 
+tail -F solr.log | ./solr_loganalyzer.py --max 20 --write_file urls.txt http://127.0.0.1:10080/solr4/ | tee stats.txt
+
+# perform a siege loadtest by using the urs file
+apt-get install siege
+siege -f urls.txt --concurrent=5 --reps=5 --delay=0.5 --no-parser
+
+# reading one or more files
+./solr_loganalyzer.py solr.log solr.log.1 solr.log.2
 ```
 
 The analyzer outputs statistics grouped by Solr core. Here is an example:
@@ -36,30 +43,12 @@ Slowest Searches for core1
 1) "mlt.count=16&&q=qrows=16" 30 times
 2) "mlt.count=16&start=0&q=&rows=16" 11 times
    
+Top Factet Fields for core1
+========================================
+ITEM 1    : 3384 times      "language"
+ITEM 2    : 1578 times      "authorName"
+   
 Search Time for core1
-========================================
-Median     2
-75%       11
-90%       11
-99%       30
-
-****************************************************************************************************
-
-Top Endpoints for core2
-========================================
-1) "/mlt" 3 times
-   
-Top Searh URLs for core2
-========================================
-1) "mlt.count=5&&q=qrows=16" 1 times
-2) "mlt.count=5&start=0&q=&rows=16" 1 times
-   
-Slowest Searches for core2
-========================================
-1) "mlt.count=5&&q=qrows=16" 30 ms
-2) "mlt.count=5&start=0&q=&rows=16" 11 ms
-   
-Search Time for core2
 ========================================
 Median     2
 75%       11
