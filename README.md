@@ -18,9 +18,11 @@ tail -1000  file | ./solr_loganalyzer.py --max 20
 # create statistics and a siege urls file by continously reading the solr.log 
 tail -F solr.log | ./solr_loganalyzer.py --max 20 --write_file urls.txt http://127.0.0.1:10080/solr4/ | tee stats.txt
 
-# perform a siege loadtest by using the urs file
+# perform a siege loadtest by using the url file
 apt-get install siege
 siege -f urls.txt --concurrent=5 --reps=5 --delay=0.5 --no-parser
+# poor mans loadtest
+(for i in `seq 1 5`;do curl -K urls.txt >/dev/null & done; wait)
 
 # reading one or more files
 ./solr_loganalyzer.py solr.log solr.log.1 solr.log.2

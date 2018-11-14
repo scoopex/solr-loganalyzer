@@ -80,13 +80,17 @@ class CoreCounter(object):
 
 class StatCounter(object):
 
-    def __init__(self, write_file_fd=None, write_base_url=None, debug=False):
+    def __init__(self, write_file_type="siege", write_file_fd=None, write_base_url=None, debug=False):
         self.corecounters = {}
         self.queries = 0
         self.lines = 0
         self.debug = debug
         self.write_file_fd = write_file_fd
         self.write_base_url = write_base_url
+        if write_file_type in ['curl', 'siege']:
+            self.write_file_type = write_file_type
+        else:
+            raise Exception("no such write file type : %s" %write_file_type)
 
     def write_file_line(self, core, path, query):
 
@@ -101,7 +105,6 @@ class StatCounter(object):
         query_args = query.split("&")
         query_args_new = []
         for query_arg in query_args:
-            # print(query_arg)
             m = re.match("^(.+)=(.+)$", query_arg)
             if m:
                 if m.group(1) == "fq" or m.group(1) == "q":
@@ -110,9 +113,11 @@ class StatCounter(object):
                     query_args_new.append(query_arg)
 
         line += "&".join(query_args_new)
-        line += "\n"
 
-        self.write_file_fd.write(line)
+        if self.write_file_type == "curl":
+            self.write_file_fd.write('url = "%s"\n\n' % line)
+        else:
+            self.write_file_fd.write(line+"\n")
 
     def process(self, iterinput):
         for line in iterinput:
@@ -171,11 +176,18 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--write_file_type',
+        type=str,
+        default="curl",
+        nargs='?',
+        help="write urlfile as 'curl' or 'siege' file")
+
+    parser.add_argument(
         '--write_file',
         type=str,
         default=None,
         nargs='?',
-        help='write query file (can be used for the siege loadtest tool)')
+        help='write query file (can be used for the siege loadtest tool or curl)')
 
     parser.add_argument(
         '--write_base_url',
@@ -191,7 +203,7 @@ if __name__ == '__main__':
     else:
         write_file_fd = None
 
-    sc = StatCounter(write_file_fd=write_file_fd, write_base_url=args.write_base_url, debug=args.debug)
+    sc = StatCounter(write_file_type=args.write_file_type, write_file_fd=write_file_fd, write_base_url=args.write_base_url, debug=args.debug)
 
     if len(remaining_args) <= 0:
         sc.process(sys.stdin)
@@ -206,5 +218,5 @@ if __name__ == '__main__':
     print("parsed %s lines with %s queries" % (sc.lines, sc.queries))
 
     if write_file_fd is not None:
-        print("wrote urls to file '%s'" % args.write_file)
+        print("wrote urls to file '%s' of type '%s'" % (args.write_file, args.write_file_type))
         write_file_fd.close()
