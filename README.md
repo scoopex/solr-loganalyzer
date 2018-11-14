@@ -73,6 +73,6 @@ This tool is distributed with the [BSD-2 Licence](LICENCE).
 Authors
 =======
 
-* Martin Filliau <dfdeshom@gmail.com>
+* Didier Deshommes <dfdeshom@gmail.com>
 * Marc Schoechlin <marc.schoechlin@vico-research.com>
 
