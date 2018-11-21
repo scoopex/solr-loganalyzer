@@ -61,7 +61,8 @@ Median     2
 # Testing
 
 ```
-nostests -s
+cd tests
+./tests.py
 ```
 
 Notes and Copyright
