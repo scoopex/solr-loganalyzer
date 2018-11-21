@@ -9,6 +9,13 @@ work and you need to have cores enabled. You also need python3 installed.
 Basic usage
 ===========
 
+# Modify solr log4j configuration to use bufferend io
+```
+log4j.appender.file.bufferedIO=true
+log4j.appender.file.bufferSize=10000 # default is 1024
+```
+Restart server
+
 # Usage:
 ```
 # reading from stdin
@@ -64,6 +71,10 @@ Median     2
 cd tests
 ./tests.py
 ```
+
+Open issues
+===========
+- Is it possible to log addtional 
 
 Notes and Copyright
 ===================
